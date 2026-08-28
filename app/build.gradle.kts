@@ -20,10 +20,12 @@ android {
 
         ndk {
             // ONNX Runtime ships native libraries for four ABIs, ~125 MB in
-            // total. Keeping arm64-v8a (every modern phone) and x86_64 (the
-            // standard emulator) gives one APK that installs everywhere we care
-            // about and drops ~90 MB. Add "armeabi-v7a" back for 32-bit devices.
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            // total, and TensorFlow Lite ships the same set. arm64-v8a covers
+            // every modern phone and x86_64 the standard emulator; armeabi-v7a
+            // is here because 32-bit-only devices still exist and refuse the
+            // APK outright (INSTALL_FAILED_NO_MATCHING_ABIS) without it. Drop
+            // it again to save roughly 30 MB if 32-bit support is not needed.
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }
     }
 

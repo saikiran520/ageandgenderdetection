@@ -62,6 +62,63 @@ class MiVOLOProcessor(private val context: Context) {
         data class Failure(val message: String, val cause: Throwable?) : Result
     }
 
+    /** One face's answer, for the live multi-face path. */
+    data class Face(
+        val box: FaceDetector.Box,
+        val age: Float,
+        val gender: String,
+        val genderScore: Float,
+    ) {
+        val ageRounded: Int get() = age.roundToInt()
+        val genderDisplay: String get() = gender.replaceFirstChar { it.uppercase() }
+    }
+
+    /**
+     * Every face in the frame, each with its own age and gender.
+     *
+     * The detector runs once and MiVOLO runs once per face, which is what the
+     * official pipeline does too: `fill_in_results` iterates the detections and
+     * classifies each crop independently, with no cross-face state.
+     *
+     * A face that fails to crop is skipped rather than failing the frame, so one
+     * subject walking off the edge does not blank the whole overlay.
+     */
+    fun analyzeAll(bitmap: Bitmap): List<Face> {
+        val faces = detector.detect(bitmap)
+        if (faces.isEmpty()) return emptyList()
+
+        return faces.mapNotNull { raw ->
+            val calibrated = detector.calibrate(raw)
+            val crop = ImagePreprocessor.cropClamped(
+                bitmap,
+                calibrated.x1.toInt(),
+                calibrated.y1.toInt(),
+                calibrated.x2.toInt(),
+                calibrated.y2.toInt(),
+            ) ?: return@mapNotNull null
+
+            val output = try {
+                val tensor = ImagePreprocessor.prepare(crop, meta)
+                OnnxTensor.createTensor(
+                    ModelManager.environment(), tensor.buffer, tensor.shape
+                ).use { input ->
+                    session.run(mapOf(meta.inputName to input)).use { results ->
+                        @Suppress("UNCHECKED_CAST")
+                        (results[0].value as Array<FloatArray>)[0].copyOf()
+                    }
+                }
+            } catch (t: Throwable) {
+                Log.e(TAG, "Per-face inference failed", t)
+                return@mapNotNull null
+            } finally {
+                crop.recycle()
+            }
+
+            val (age, gender, genderScore) = decode(output)
+            Face(calibrated, age, gender, genderScore)
+        }
+    }
+
     fun analyze(bitmap: Bitmap): Result {
         val startedAt = System.nanoTime()
         return try {

@@ -72,6 +72,51 @@ class TfLiteProcessor(private val context: Context) {
 
     fun defaultVariantId(): String = meta.defaultVariant
 
+    /** One face's answer, for the live multi-face path. */
+    data class Face(
+        val box: FaceDetector.Box,
+        val age: Float,
+        val gender: String,
+        val genderScore: Float,
+    ) {
+        val ageRounded: Int get() = age.roundToInt()
+        val genderDisplay: String get() = gender.replaceFirstChar { it.uppercase() }
+    }
+
+    /**
+     * Every face in the frame, each with its own age and gender.
+     *
+     * The detector runs once and both heads run once per face. A face that fails
+     * to crop or infer is skipped rather than failing the frame, so one subject
+     * leaving the shot does not blank the whole overlay.
+     */
+    fun analyzeAll(bitmap: Bitmap, variantId: String): List<Face> {
+        val faces = detector.detect(bitmap)
+        if (faces.isEmpty()) return emptyList()
+
+        return faces.mapNotNull { raw ->
+            val expanded = expand(raw)
+            val crop = ImagePreprocessor.cropClamped(
+                bitmap,
+                expanded.x1.toInt(),
+                expanded.y1.toInt(),
+                expanded.x2.toInt(),
+                expanded.y2.toInt(),
+            ) ?: return@mapNotNull null
+
+            try {
+                val age = run(KEY_AGE, variantId, crop)
+                val gender = run(KEY_GENDER, variantId, crop)
+                Face(expanded, age.value, gender.label, gender.confidence ?: 0f)
+            } catch (t: Throwable) {
+                Log.e(TAG, "Per-face inference failed", t)
+                null
+            } finally {
+                crop.recycle()
+            }
+        }
+    }
+
     fun analyze(bitmap: Bitmap, variantId: String): Result {
         val startedAt = System.nanoTime()
         return try {
