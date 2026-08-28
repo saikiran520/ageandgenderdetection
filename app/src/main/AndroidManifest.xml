@@ -5,9 +5,10 @@
     <!--
         There is deliberately NO android.permission.INTERNET here.
 
-        Everything this app needs - the MiVOLO ONNX graph, the YuNet face
-        detector, the model metadata and the box calibration - is packaged in
-        app/src/main/assets and loaded from local storage. Omitting the INTERNET
+        Everything this app needs - the MiVOLO ONNX graph, the TFLite age and
+        gender graphs, the YuNet face detector, the model metadata and the box
+        calibration - is packaged in app/src/main/assets and loaded from local
+        storage. Omitting the INTERNET
         permission means the offline guarantee is enforced by the OS rather than
         merely asserted in a README: the process cannot open a socket even if it
         wanted to.
@@ -44,6 +45,14 @@
             android:name=".CameraActivity"
             android:exported="false"
             android:label="@string/camera_title"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Ageandgenderdetection"
+            tools:ignore="LockedOrientationActivity" />
+
+        <activity
+            android:name=".TfLiteActivity"
+            android:exported="false"
+            android:label="@string/tflite_title"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.Ageandgenderdetection"
             tools:ignore="LockedOrientationActivity" />

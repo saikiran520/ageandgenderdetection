@@ -31,10 +31,12 @@ import kotlinx.coroutines.launch
 import androidx.lifecycle.lifecycleScope
 
 /**
- * Screen 1. A title and one button labelled "MiVOLO".
+ * Screen 1. One button per inference path: "MiVOLO" (ONNX) and "TFLite".
  *
- * The models are warmed up here on a background thread so that the first
- * capture on the camera screen does not pay for session creation.
+ * Both sets of models are warmed up here on a background thread so that the
+ * first capture on either screen does not pay for session creation. The two
+ * warm-ups are independent -- a failure in one is logged and leaves the other
+ * usable.
  */
 class MainActivity : ComponentActivity() {
 
@@ -44,7 +46,9 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             runCatching { ModelManager.preload(applicationContext) }
-                .onFailure { Log.e(ModelManager.TAG, "Model preload failed", it) }
+                .onFailure { Log.e(ModelManager.TAG, "MiVOLO preload failed", it) }
+            runCatching { TfLiteModelManager.preload(applicationContext) }
+                .onFailure { Log.e(TfLiteModelManager.TAG, "TFLite preload failed", it) }
         }
 
         setContent {
@@ -54,6 +58,9 @@ class MainActivity : ComponentActivity() {
                         contentPadding = innerPadding,
                         onOpenCamera = {
                             startActivity(Intent(this, CameraActivity::class.java))
+                        },
+                        onOpenTfLite = {
+                            startActivity(Intent(this, TfLiteActivity::class.java))
                         },
                         onSelfTest = {
                             startActivity(
@@ -72,6 +79,7 @@ class MainActivity : ComponentActivity() {
 private fun HomeScreen(
     contentPadding: PaddingValues,
     onOpenCamera: () -> Unit,
+    onOpenTfLite: () -> Unit,
     onSelfTest: () -> Unit,
 ) {
     Column(
@@ -83,7 +91,7 @@ private fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "MiVOLO Age & Gender POC",
+            text = "Age & Gender POC",
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center,
         )
@@ -106,6 +114,17 @@ private fun HomeScreen(
             Text("MiVOLO")
         }
 
+        Spacer(Modifier.height(12.dp))
+
+        // The second, entirely separate path: the .tflite age and gender heads
+        // in assets/tflite, run through TensorFlow Lite. See TfLiteActivity.
+        Button(
+            onClick = onOpenTfLite,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("TFLite")
+        }
+
         Spacer(Modifier.height(16.dp))
 
         // Not part of the POC flow: this runs the bundled assets/test.jpg through
@@ -122,6 +141,6 @@ private fun HomeScreen(
 @Composable
 private fun HomeScreenPreview() {
     AgeandgenderdetectionTheme {
-        HomeScreen(PaddingValues(0.dp), {}, {})
+        HomeScreen(PaddingValues(0.dp), {}, {}, {})
     }
 }

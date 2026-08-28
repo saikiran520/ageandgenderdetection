@@ -1,0 +1,75 @@
+{
+  "_comment": [
+    "Drives TfLiteModelManager / TfLiteProcessor. Nothing about these graphs is",
+    "hardcoded in Kotlin: input width/height/channels, tensor data type and any",
+    "quantisation scale/zero-point are read from the .tflite flatbuffer itself at",
+    "runtime via Interpreter.getInputTensor/getOutputTensor. Only the things a",
+    "TFLite graph cannot describe live here - how pixels are normalised before",
+    "the first op, how the head's numbers turn into years, and the class order.",
+    "Add a variant or swap a file and no Kotlin has to change."
+  ],
+
+  "asset_dir": "tflite",
+  "default_variant": "q",
+
+  "variants": [
+    { "id": "q", "label": "Quantized", "suffix": "_q" },
+    { "id": "nonq", "label": "Float", "suffix": "_nonq" }
+  ],
+
+  "face_crop": {
+    "_comment": "Fraction of the detected face box added on each side before cropping. These heads want a looser, UTKFace-style crop that includes hair and chin; the raw YuNet box is tighter than that. 0.15 measured best - see _calibration below.",
+    "margin_x": 0.15,
+    "margin_y": 0.15
+  },
+
+  "_calibration": [
+    "These graphs ship with no TFLite metadata describing their input scaling or",
+    "their age target, so the values below were measured rather than guessed: the",
+    "age head was run over six faces under every plausible combination of pixel",
+    "scaling (x/255, x/127.5-1, per-image standardization, raw), crop margin",
+    "(0.00 / 0.15 / 0.30) and age scale (100 / 116), and each combination was",
+    "scored by mean absolute error against what the MiVOLO model in this same app",
+    "predicts for the same photographs. Result, best first:",
+    "  x/255  margin 0.15  scale 100  ->  MAE  7.78   <- chosen",
+    "  x/255  margin 0.30  scale 116  ->  MAE  7.88",
+    "  x/255  margin 0.30  scale 100  ->  MAE 10.11",
+    "  x/255  margin 0.15  scale 116  ->  MAE 10.14",
+    "  x/127.5-1 margin 0.15 scale 116 -> MAE 13.35",
+    "  per-image standardization      ->  MAE 25+ and wildly unstable across margins",
+    "MAE ~8 against MiVOLO is the expected gap for a 400 KB head measured against a",
+    "100 MB one, not a sign of a decode error: the alternatives are 3-6x worse."
+  ],
+
+  "models": {
+    "age": {
+      "file_stem": "model_lite_age",
+      "_comment": "mean 0 / std 1 over pixel_scale 255 is a plain x/255, which is what the graph was trained on - it starts at a depthwise conv with no normalisation layer of its own.",
+      "normalization": "mean_std",
+      "pixel_scale": 255.0,
+      "mean": [0.0, 0.0, 0.0],
+      "std": [1.0, 1.0, 1.0],
+      "decode": {
+        "kind": "linear_regression",
+        "_comment": "output[0] is a single unactivated scalar; the training target was age / 100.",
+        "scale": 100.0,
+        "offset": 0.0,
+        "clamp_min": 1.0,
+        "clamp_max": 100.0
+      }
+    },
+    "gender": {
+      "file_stem": "model_lite_gender",
+      "normalization": "mean_std",
+      "pixel_scale": 255.0,
+      "mean": [0.0, 0.0, 0.0],
+      "std": [1.0, 1.0, 1.0],
+      "decode": {
+        "kind": "classification",
+        "_comment": "The graph ends in SOFTMAX, so the output is already a probability vector; TfLiteProcessor renormalises only if it is not.",
+        "already_normalized": true,
+        "labels": ["male", "female"]
+      }
+    }
+  }
+}

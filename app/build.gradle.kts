@@ -43,11 +43,13 @@ android {
     }
 
     androidResources {
-        // The ONNX graphs are already incompressible. Storing them uncompressed lets
-        // ModelManager copy them out of the APK by a straight stream copy and lets
-        // ONNX Runtime memory-map the 100 MB MiVOLO weights instead of holding them
-        // on the Java heap.
-        noCompress += listOf("onnx", "json")
+        // The model graphs are already incompressible. Storing them uncompressed
+        // lets ModelManager copy the ONNX files out of the APK by a straight
+        // stream copy and lets ONNX Runtime memory-map the 100 MB MiVOLO weights
+        // instead of holding them on the Java heap. The .tflite entries must be
+        // uncompressed for a different reason: TfLiteModelManager maps them with
+        // FileChannel.map, which only works on a stored (not deflated) entry.
+        noCompress += listOf("onnx", "tflite", "json")
     }
 }
 
@@ -70,6 +72,11 @@ dependencies {
     // Fully local inference runtime. The AAR bundles arm64-v8a, armeabi-v7a,
     // x86 and x86_64 native libraries; nothing is fetched at runtime.
     implementation(libs.onnxruntime.android)
+
+    // The second, independent inference path: the .tflite age and gender heads
+    // in assets/tflite. The AAR bundles its own native libraries; like ONNX
+    // Runtime it fetches nothing at runtime.
+    implementation(libs.tensorflow.lite)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
