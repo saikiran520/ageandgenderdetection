@@ -1,0 +1,38 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Python environment for the model-preparation scripts
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Downloaded / generated model artifacts.
+# Regenerate with:
+#   python scripts/download_models.py
+#   python scripts/export_model.py
+#   python scripts/pack_assets.py
+/models/
+
+# Test photographs fetched from Wikimedia Commons.
+# Regenerate with: python scripts/fetch_testdata.py
+/testdata/
+
+# Large binaries copied into assets by scripts/pack_assets.py.
+# model_meta.json and face_box_calibration.json are deliberately NOT ignored:
+# they are small, and they record the constants derived from the checkpoint.
+app/src/main/assets/*.onnx
+app/src/main/assets/test.jpg

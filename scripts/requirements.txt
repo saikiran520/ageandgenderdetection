@@ -1,0 +1,47 @@
+# Python dependencies for the model preparation scripts.
+# NONE of this is needed to run the app - it is only used on the developer
+# machine to download, export and validate the model.
+#
+# Install (Python 3.10 recommended, matching MiVOLO's own requirements):
+#
+#     python -m venv .venv
+#     .venv\Scripts\activate            (Windows)
+#     source .venv/bin/activate         (macOS / Linux)
+#     pip install "setuptools<81" wheel
+#     pip install -r scripts/requirements.txt
+#
+# Two ordering notes, both of which will otherwise bite you:
+#
+#  * "setuptools<81" and wheel must be installed FIRST. MiVOLO's setup.py imports
+#    pkg_resources, which setuptools 81+ removed, so the build fails otherwise.
+#    The mivolo line below also needs --no-build-isolation for the same reason:
+#
+#        pip install --no-build-isolation "mivolo @ git+https://github.com/WildChlamydia/MiVOLO.git"
+#
+#  * On Windows, keep the virtualenv on a SHORT path (e.g. C:\venvs\mivolo).
+#    torch has file paths long enough to trip the 260-character MAX_PATH limit
+#    unless long paths are enabled.
+
+# --- core: needed by every script ---
+numpy==1.26.4
+opencv-python>=4.9
+onnx>=1.16
+onnxruntime>=1.18
+requests>=2.31
+
+# --- model export: export_model.py ---
+# The MiVOLO README pins torch 2.5.1 / torchvision 0.20.1. CPU wheels are enough.
+# For CPU-only installs:
+#     pip install --index-url https://download.pytorch.org/whl/cpu torch==2.5.1 torchvision==0.20.1
+torch==2.5.1
+torchvision==0.20.1
+timm==0.8.13.dev0
+
+# --- reference detector: calibrate_face_box.py, test_mivolo.py --reference ---
+ultralytics==8.1.0
+omegaconf          # the published yolov8x_person_face.pt checkpoint unpickles into it
+scipy
+
+# --- the official MiVOLO package itself ---
+# Install separately, because it needs --no-build-isolation (see above):
+#     pip install --no-build-isolation "mivolo @ git+https://github.com/WildChlamydia/MiVOLO.git"

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+        There is deliberately NO android.permission.INTERNET here.
+
+        Everything this app needs - the MiVOLO ONNX graph, the YuNet face
+        detector, the model metadata and the box calibration - is packaged in
+        app/src/main/assets and loaded from local storage. Omitting the INTERNET
+        permission means the offline guarantee is enforced by the OS rather than
+        merely asserted in a README: the process cannot open a socket even if it
+        wanted to.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="true" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Ageandgenderdetection">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Ageandgenderdetection"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".CameraActivity"
+            android:exported="false"
+            android:label="@string/camera_title"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Ageandgenderdetection"
+            tools:ignore="LockedOrientationActivity" />
+    </application>
+
+</manifest>
